@@ -19,6 +19,7 @@ export default function Home() {
   const [tokens, setTokens] = useState<TokenResponse | null>(null);
   const [error, setError] = useState('');
   const [isCallback, setIsCallback] = useState(false);
+  const [copied, setCopied] = useState(false);
   
   // Get the current URL to use as redirect URI
   const redirectUri = typeof window !== 'undefined' ? 
@@ -90,8 +91,38 @@ export default function Home() {
       }
       
       setTokens(data);
-    } catch (err) {
+    } catch (err: any) {
       setError(err.message);
+    }
+  };
+
+  // Function to copy the bearer token to clipboard
+  const copyBearerToken = () => {
+    if (tokens?.access_token) {
+      navigator.clipboard.writeText(tokens.access_token);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  // Function to copy the Python code snippet
+  const copyPythonCode = () => {
+    if (tokens?.access_token && apiKey) {
+      const pythonCode = `
+import requests
+
+headers = {
+    'Authorization': 'Bearer ${tokens.access_token}',
+    'x-api-key': '${apiKey}',
+    'Content-Type': 'application/json'
+}
+
+response = requests.get('https://api.stockx.com/v2/catalog/products', headers=headers)
+print(response.json())
+`;
+      navigator.clipboard.writeText(pythonCode);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
     }
   };
   
@@ -114,7 +145,8 @@ export default function Home() {
   return (
     <div className={styles.container}>
       <main className={styles.main}>
-        <h1 className={styles.title}>StockX OAuth Helper</h1>
+        <h1 className={styles.title}>StockX OAuth Token Generator</h1>
+        <p className={styles.description}>Get your bearer token for StockX API requests</p>
         
         <div className={styles.card}>
           <h2>Step 1: Enter Your Credentials</h2>
@@ -202,36 +234,51 @@ export default function Home() {
         
         {tokens && (
           <div className={styles.card}>
-            <h2>Your Tokens</h2>
+            <h2>Your Bearer Token</h2>
             <div className={styles.tokenBox}>
-              <h3>Access Token:</h3>
+              <div className={styles.tokenHeader}>
+                <h3>Bearer Token:</h3>
+                <button 
+                  className={styles.copyButton} 
+                  onClick={copyBearerToken}
+                >
+                  {copied ? 'Copied!' : 'Copy Token'}
+                </button>
+              </div>
               <textarea 
                 readOnly 
                 value={tokens.access_token}
                 rows={3}
               />
               
-              <h3>Refresh Token:</h3>
-              <textarea 
-                readOnly 
-                value={tokens.refresh_token || 'No refresh token provided'}
-                rows={3}
-              />
+              <div className={styles.tokenInfo}>
+                <p><strong>Token Type:</strong> {tokens.token_type}</p>
+                <p><strong>Expires In:</strong> {tokens.expires_in} seconds</p>
+              </div>
               
-              <h3>Token Type:</h3>
-              <p>{tokens.token_type}</p>
-              
-              <h3>Expires In:</h3>
-              <p>{tokens.expires_in} seconds</p>
-              
-              <div className={styles.apiExample}>
-                <h3>API Request Example:</h3>
-                <code>
-                  curl --location --request GET 'https://api.stockx.com/v2/catalog/products' \<br/>
-                  --header 'Content-Type: application/json' \<br/>
-                  --header 'Authorization: Bearer {tokens.access_token}' \<br/>
-                  --header 'x-api-key: {apiKey}'
-                </code>
+              <div className={styles.pythonExample}>
+                <h3>Python Code Example:</h3>
+                <div className={styles.codeHeader}>
+                  <span>Python</span>
+                  <button 
+                    className={styles.copyButton} 
+                    onClick={copyPythonCode}
+                  >
+                    {copied ? 'Copied!' : 'Copy Code'}
+                  </button>
+                </div>
+                <pre className={styles.codeBlock}>
+{`import requests
+
+headers = {
+    'Authorization': 'Bearer ${tokens.access_token}',
+    'x-api-key': '${apiKey}',
+    'Content-Type': 'application/json'
+}
+
+response = requests.get('https://api.stockx.com/v2/catalog/products', headers=headers)
+print(response.json())`}
+                </pre>
               </div>
             </div>
           </div>
